@@ -93,9 +93,37 @@ export const annotationService = {
 }
 
 /**
- * D&D content cache operations
+ * D&D content cache operations and character management
  */
 export const contentService = {
+  // Character operations
+  async getAllCharacters() {
+    return await db.characters.toArray()
+  },
+
+  async getCharacter(id: string) {
+    return await db.characters.get(id)
+  },
+
+  async addCharacter(character: Character) {
+    await db.characters.add(character)
+    return character
+  },
+
+  async updateCharacter(id: string, updates: Partial<Character>) {
+    await db.characters.update(id, {
+      ...updates,
+      updatedAt: new Date(),
+    })
+  },
+
+  async deleteCharacter(id: string) {
+    await db.characters.delete(id)
+    // Also delete associated annotations
+    await db.annotations.where('characterId').equals(id).delete()
+  },
+
+  // Content cache operations
   async cacheSpells(spells: Spell[]) {
     await db.spells.clear()
     await db.spells.bulkAdd(spells)
