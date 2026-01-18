@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { AnnotationMode } from './AnnotationCanvas'
 
-type AnnotationMode = 'select' | 'draw' | 'highlight' | 'ocr' | null
+interface AnnotationToolsProps {
+  activeMode: AnnotationMode
+  onModeChange: (mode: AnnotationMode) => void
+}
 
-export default function AnnotationTools() {
-  const [activeMode, setActiveMode] = useState<AnnotationMode>(null)
+export default function AnnotationTools({ activeMode, onModeChange }: AnnotationToolsProps) {
 
   const tools = [
     {
@@ -56,7 +58,7 @@ export default function AnnotationTools() {
         {tools.map(tool => (
           <button
             key={tool.id}
-            onClick={() => setActiveMode(tool.id)}
+            onClick={() => onModeChange(tool.id)}
             className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
               activeMode === tool.id
                 ? 'bg-primary-600 text-white'

@@ -1,19 +1,34 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
+import AnnotationCanvas, { AnnotationMode, OCRMatchResult } from '../annotation/AnnotationCanvas'
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 interface PDFViewerProps {
   pdfUrl: string
+  annotationMode?: AnnotationMode
+  onOCRResult?: (result: OCRMatchResult) => void
 }
 
-export default function PDFViewer({ pdfUrl }: PDFViewerProps) {
+export default function PDFViewer({ pdfUrl, annotationMode, onOCRResult }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null)
   const [pageNumber, setPageNumber] = useState(1)
   const [scale, setScale] = useState(1.0)
+  const pdfCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const pageContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Get the PDF canvas after page renders
+    if (pageContainerRef.current) {
+      const canvas = pageContainerRef.current.querySelector('canvas')
+      if (canvas) {
+        pdfCanvasRef.current = canvas
+      }
+    }
+  }, [pageNumber, scale])
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages)
@@ -78,27 +93,36 @@ export default function PDFViewer({ pdfUrl }: PDFViewerProps) {
         </div>
       </div>
 
-      {/* PDF Document */}
+      {/* PDF Document with Annotation Layer */}
       <div className="flex justify-center bg-gray-700 rounded-lg p-4 overflow-auto max-h-[800px]">
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={
-            <div className="text-white p-8">Loading PDF...</div>
-          }
-          error={
-            <div className="text-red-500 p-8">
-              Failed to load PDF. Please try again.
-            </div>
-          }
-        >
-          <Page
-            pageNumber={pageNumber}
-            scale={scale}
-            renderTextLayer={true}
-            renderAnnotationLayer={true}
-          />
-        </Document>
+        <div ref={pageContainerRef} className="relative">
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            loading={
+              <div className="text-white p-8">Loading PDF...</div>
+            }
+            error={
+              <div className="text-red-500 p-8">
+                Failed to load PDF. Please try again.
+              </div>
+            }
+          >
+            <Page
+              pageNumber={pageNumber}
+              scale={scale}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+            />
+          </Document>
+          {pdfCanvasRef.current && (
+            <AnnotationCanvas
+              pdfCanvas={pdfCanvasRef.current}
+              mode={annotationMode || null}
+              onOCRResult={onOCRResult}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
